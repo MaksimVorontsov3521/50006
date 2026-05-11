@@ -126,12 +126,15 @@ std::ostream& operator<<(std::ostream& stream, const DataStruct& data) {
     std::ostream::sentry sentry(stream);
     if (sentry) {
         StreamGuard guard(stream);
-        stream << "(:";
-        stream << "key1 " << std::showbase << std::oct << data.key1_ << ":";
-        stream << "key2 #c(" << data.key2_.real() << " ";
-        stream << data.key2_.imag() << "):";
-        stream << "key3 \"" << data.key3_ << "\":";
-        stream << ")";
+        stream << "(:key1 ";
+        if (data.key1_ == 0) {
+            stream << "00";
+        }
+        else {
+            stream << std::showbase << std::oct << data.key1_;
+        }
+        stream << ":key2 #c(" << data.key2_.real() << " ";
+        stream << data.key2_.imag() << "):key3 \"" << data.key3_ << "\":)";
     }
     return stream;
 }
