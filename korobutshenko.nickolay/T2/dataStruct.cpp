@@ -1,7 +1,6 @@
 ﻿#include "dataStruct.h"
 #include "IOFormat.h"
 #include <iomanip>
-#include <sstream>
 
 bool DataStructComparator::operator()(const DataStruct& left, const DataStruct& right) const
 {
@@ -21,100 +20,92 @@ bool DataStructComparator::operator()(const DataStruct& left, const DataStruct& 
 std::istream& operator>>(std::istream& in, DataStruct& dataStruct)
 {
   std::istream::sentry sentry(in);
+  if (!sentry)
+  {
+    return in;
+  }
+
+  DataStruct temp;
+  bool hasKey1 = false;
+  bool hasKey2 = false;
+  bool hasKey3 = false;
+
+  in >> DelimeterIO{ '(' };
   if (!in)
   {
     return in;
   }
 
-  std::string line;
-  while (std::getline(in, line))
+  while (!(hasKey1 && hasKey2 && hasKey3))
   {
-    if (line.empty())
+    in >> DelimeterIO{ ':' };
+    if (!in)
     {
-      continue;
+      break;
     }
 
-    std::istringstream iss(line);
-
-    DataStruct temp;
-    bool hasKey1 = false;
-    bool hasKey2 = false;
-    bool hasKey3 = false;
-
-    iss >> DelimeterIO{ '(' };
-    if (!iss)
+    std::string label;
+    in >> label;
+    if (!in)
     {
-      continue;
+      break;
     }
 
-    while (!(hasKey1 && hasKey2 && hasKey3))
+    if (label == "key1" && !hasKey1)
     {
-      iss >> DelimeterIO{ ':' };
-      if (!iss)
+      in >> DblLitIO{ temp.key1 };
+      if (!in)
       {
         break;
       }
-
-      std::string label;
-      iss >> label;
-      if (!iss)
+      hasKey1 = true;
+    }
+    else if (label == "key2" && !hasKey2)
+    {
+      in >> SllLitIO{ temp.key2 };
+      if (!in)
       {
         break;
       }
-
-      if (label == "key1" && !hasKey1)
-      {
-        iss >> DblLitIO{ temp.key1 };
-        if (!iss)
-        {
-          break;
-        }
-        hasKey1 = true;
-      }
-      else if (label == "key2" && !hasKey2)
-      {
-        iss >> SllLitIO{ temp.key2 };
-        if (!iss)
-        {
-          break;
-        }
-        hasKey2 = true;
-      }
-      else if (label == "key3" && !hasKey3)
-      {
-        iss >> StringIO{ temp.key3 };
-        if (!iss)
-        {
-          break;
-        }
-        hasKey3 = true;
-      }
-      else
+      hasKey2 = true;
+    }
+    else if (label == "key3" && !hasKey3)
+    {
+      in >> StringIO{ temp.key3 };
+      if (!in)
       {
         break;
       }
+      hasKey3 = true;
     }
-
-    iss >> DelimeterIO{ ':' };
-    if (!iss)
+    else
     {
-      continue;
-    }
-
-    iss >> DelimeterIO{ ')' };
-    if (!iss)
-    {
-      continue;
-    }
-
-    if (hasKey1 && hasKey2 && hasKey3 && iss)
-    {
-      dataStruct = temp;
-      return in;
+      in.setstate(std::ios::failbit);
+      break;
     }
   }
 
-  in.setstate(std::ios::failbit);
+  in >> DelimeterIO{ ':' };
+  if (!in)
+  {
+    return in;
+  }
+
+  in >> DelimeterIO{ ')' };
+  if (!in)
+  {
+    return in;
+  }
+
+  if (hasKey1 && hasKey2 && hasKey3)
+  {
+    dataStruct = temp;
+  }
+  else
+  {
+    in.setstate(std::ios::failbit);
+  }
+
   return in;
 }
 

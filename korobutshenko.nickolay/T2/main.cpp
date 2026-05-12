@@ -1,17 +1,29 @@
 #include "dataStruct.h"
 #include <vector>
 #include <algorithm>
-#include <iterator>
+#include <limits>
 
 int main()
 {
   std::vector<DataStruct> data;
+  DataStruct temp;
 
-  std::copy(
-    std::istream_iterator<DataStruct>(std::cin),
-    std::istream_iterator<DataStruct>(),
-    std::back_inserter(data)
-  );
+  while (std::cin)
+  {
+    if (std::cin >> temp)
+    {
+      data.push_back(temp);
+    }
+    else if (std::cin.eof())
+    {
+      break;
+    }
+    else
+    {
+      std::cin.clear();
+      std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+  }
 
   std::sort(data.begin(), data.end(), DataStructComparator());
 
