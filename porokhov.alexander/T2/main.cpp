@@ -1,48 +1,35 @@
 #include <iostream>
-#include <vector>
 #include <string>
+#include <vector>
 #include <algorithm>
 #include <iterator>
+#include <limits>
 #include <iomanip>
-#include <cctype>
-#include <sstream>
+#include <utility>
 
-struct DataStruct
+// IOFormat
+
+struct DelimeterIO
 {
-    double key1;
-    unsigned long long key2;
-    std::string key3;
+    char exp;
 };
 
-class iofmtguard
+struct SllLitIO
 {
-public:
-    explicit iofmtguard(std::basic_ios<char>& s) :
-        s_(s),
-        width_(s.width()),
-        precision_(s.precision()),
-        fill_(s.fill()),
-        fmt_(s.flags())
-    {
-    }
-
-    ~iofmtguard()
-    {
-        s_.width(width_);
-        s_.fill(fill_);
-        s_.precision(precision_);
-        s_.flags(fmt_);
-    }
-
-private:
-    std::basic_ios<char>& s_;
-    std::streamsize width_;
-    std::streamsize precision_;
-    char fill_;
-    std::basic_ios<char>::fmtflags fmt_;
+    long long& ref;
 };
 
-std::istream& operator>>(std::istream& in, DataStruct& dest)
+struct RatLspIO
+{
+    std::pair<long long, unsigned long long>& ref;
+};
+
+struct StringIO
+{
+    std::string& ref;
+};
+
+std::istream& operator>>(std::istream& in, DelimeterIO&& dest)
 {
     std::istream::sentry sentry(in);
     if (!sentry)
@@ -50,141 +37,287 @@ std::istream& operator>>(std::istream& in, DataStruct& dest)
         return in;
     }
 
-    std::streampos start_pos = in.tellg();
+    char c = '\0';
+    in >> c;
+    if (in && c != dest.exp)
+    {
+        in.setstate(std::ios::failbit);
+    }
 
-    char ch;
-    if (!(in >> ch) || ch != '(')
+    return in;
+}
+
+std::istream& operator>>(std::istream& in, SllLitIO&& dest)
+{
+    std::istream::sentry sentry(in);
+    if (!sentry)
+    {
+        return in;
+    }
+
+    long long value = 0;
+    in >> value;
+
+    if (in.peek() == 'L' || in.peek() == 'l')
+    {
+        char first = '\0';
+        char second = '\0';
+        in.get(first);
+        in.get(second);
+        if (first != second)
+        {
+            in.setstate(std::ios::failbit);
+            return in;
+        }
+    }
+
+    dest.ref = value;
+    return in;
+}
+
+std::istream& operator>>(std::istream& in, RatLspIO&& dest)
+{
+    std::istream::sentry sentry(in);
+    if (!sentry)
+    {
+        return in;
+    }
+
+    in >> DelimeterIO{ '(' };
+    if (!in)
+    {
+        return in;
+    }
+
+    in >> DelimeterIO{ ':' };
+    if (!in)
+    {
+        return in;
+    }
+
+    std::string label;
+    in >> label;
+    if (!in || label != "N")
     {
         in.setstate(std::ios::failbit);
         return in;
     }
 
-    DataStruct tmp{};
-    bool has_key1 = false;
-    bool has_key2 = false;
-    bool has_key3 = false;
-
-    while (true)
+    long long numer = 0;
+    in >> numer;
+    if (!in)
     {
-        in >> std::ws;
+        return in;
+    }
 
-        std::string label;
-        bool label_read = false;
-        while (in && std::isprint(in.peek()) && in.peek() != ' ' && in.peek() != ':')
+    in >> DelimeterIO{ ':' };
+    if (!in)
+    {
+        return in;
+    }
+
+    in >> label;
+    if (!in || label != "D")
+    {
+        in.setstate(std::ios::failbit);
+        return in;
+    }
+
+    unsigned long long denom = 0;
+    in >> denom;
+    if (!in || denom == 0)
+    {
+        in.setstate(std::ios::failbit);
+        return in;
+    }
+
+    in >> DelimeterIO{ ':' };
+    if (!in)
+    {
+        return in;
+    }
+
+    in >> DelimeterIO{ ')' };
+    if (!in)
+    {
+        return in;
+    }
+
+    dest.ref = { numer, denom };
+    return in;
+}
+
+std::istream& operator>>(std::istream& in, StringIO&& dest)
+{
+    std::istream::sentry sentry(in);
+    if (!sentry)
+    {
+        return in;
+    }
+
+    in >> DelimeterIO{ '"' };
+    if (!in)
+    {
+        return in;
+    }
+    std::getline(in, dest.ref, '"');
+
+    return in;
+}
+
+class iofguard
+{
+public:
+    iofguard(std::basic_ios<char>& s) :
+        s_(s),
+        fill_(s.fill()),
+        precision_(s.precision()),
+        fmt_(s.flags())
+    {
+    }
+
+    ~iofguard()
+    {
+        s_.fill(fill_);
+        s_.precision(precision_);
+        s_.flags(fmt_);
+    }
+
+private:
+    std::basic_ios<char>& s_;
+    char fill_;
+    std::streamsize precision_;
+    std::basic_ios<char>::fmtflags fmt_;
+};
+
+// DataStruct
+
+struct DataStruct
+{
+    long long key1;
+    std::pair<long long, unsigned long long> key2;
+    std::string key3;
+};
+
+struct DataStructComparator
+{
+    bool operator()(const DataStruct& left, const DataStruct& right) const
+    {
+        if (left.key1 != right.key1)
         {
-            char c;
-            in.get(c);
-            label.push_back(c);
+            return left.key1 < right.key1;
         }
-        label_read = !label.empty();
 
-        if (!label_read)
+        if (left.key2.first != right.key2.first)
         {
-            in.clear();
-            in.seekg(start_pos);
-            in.setstate(std::ios::failbit);
-            return in;
+            return left.key2.first < right.key2.first;
         }
 
-        if (label == ":)")
+        double leftVal = static_cast<double>(left.key2.first) / left.key2.second;
+        double rightVal = static_cast<double>(right.key2.first) / right.key2.second;
+
+        if (leftVal != rightVal)
+        {
+            return leftVal < rightVal;
+        }
+
+        return left.key3.length() < right.key3.length();
+    }
+};
+
+std::istream& operator>>(std::istream& in, DataStruct& dataStruct)
+{
+    std::istream::sentry sentry(in);
+    if (!sentry)
+    {
+        return in;
+    }
+
+    DataStruct temp;
+    bool hasKey1 = false;
+    bool hasKey2 = false;
+    bool hasKey3 = false;
+
+    in >> DelimeterIO{ '(' };
+    if (!in)
+    {
+        return in;
+    }
+
+    while (!(hasKey1 && hasKey2 && hasKey3))
+    {
+        in >> DelimeterIO{ ':' };
+        if (!in)
         {
             break;
         }
-        else if (label == ":key1")
+
+        std::string label;
+        in >> label;
+        if (!in)
         {
-            double val = 0.0;
-            char suffix = ' ';
-            if (in >> val >> suffix &&
-                std::tolower(static_cast<unsigned char>(suffix)) == 'd')
-            {
-                tmp.key1 = val;
-                has_key1 = true;
-            }
-            else
-            {
-                in.clear();
-                in.seekg(start_pos);
-                in.setstate(std::ios::failbit);
-                return in;
-            }
+            break;
         }
-        else if (label == ":key2")
+
+        if (label == "key1" && !hasKey1)
         {
-            unsigned long long val = 0;
-            char u = ' ', l1 = ' ', l2 = ' ';
-            if (in >> val >> u >> l1 >> l2 &&
-                std::tolower(static_cast<unsigned char>(u)) == 'u' &&
-                std::tolower(static_cast<unsigned char>(l1)) == 'l' &&
-                std::tolower(static_cast<unsigned char>(l2)) == 'l')
+            in >> SllLitIO{ temp.key1 };
+            if (!in)
             {
-                tmp.key2 = val;
-                has_key2 = true;
+                break;
             }
-            else
-            {
-                in.clear();
-                in.seekg(start_pos);
-                in.setstate(std::ios::failbit);
-                return in;
-            }
+            hasKey1 = true;
         }
-        else if (label == ":key3")
+        else if (label == "key2" && !hasKey2)
         {
-            char quote;
-            if (in >> quote && quote == '"')
+            in >> RatLspIO{ temp.key2 };
+            if (!in)
             {
-                std::string val;
-                while (in && in.peek() != '"')
-                {
-                    char c;
-                    in.get(c);
-                    val.push_back(c);
-                }
-                if (in >> quote && quote == '"')
-                {
-                    tmp.key3 = val;
-                    has_key3 = true;
-                }
-                else
-                {
-                    in.clear();
-                    in.seekg(start_pos);
-                    in.setstate(std::ios::failbit);
-                    return in;
-                }
+                break;
             }
-            else
+            hasKey2 = true;
+        }
+        else if (label == "key3" && !hasKey3)
+        {
+            in >> StringIO{ temp.key3 };
+            if (!in)
             {
-                in.clear();
-                in.seekg(start_pos);
-                in.setstate(std::ios::failbit);
-                return in;
+                break;
             }
+            hasKey3 = true;
         }
         else
         {
-            in.clear();
-            in.seekg(start_pos);
             in.setstate(std::ios::failbit);
-            return in;
+            break;
         }
     }
 
-    if (has_key1 && has_key2 && has_key3)
+    in >> DelimeterIO{ ':' };
+    if (!in)
     {
-        dest = tmp;
         return in;
+    }
+
+    in >> DelimeterIO{ ')' };
+    if (!in)
+    {
+        return in;
+    }
+
+    if (hasKey1 && hasKey2 && hasKey3)
+    {
+        dataStruct = temp;
     }
     else
     {
-        in.clear();
-        in.seekg(start_pos);
         in.setstate(std::ios::failbit);
-        return in;
     }
+
+    return in;
 }
 
-std::ostream& operator<<(std::ostream& out, const DataStruct& src)
+std::ostream& operator<<(std::ostream& out, const DataStruct& dataStruct)
 {
     std::ostream::sentry sentry(out);
     if (!sentry)
@@ -192,46 +325,46 @@ std::ostream& operator<<(std::ostream& out, const DataStruct& src)
         return out;
     }
 
-    iofmtguard fmtguard(out);
-    out << "(:key1 ";
-    out << std::fixed;
-    out << std::setprecision(1);
-    out << src.key1;
-    out << "d:key2 ";
-    out << src.key2;
-    out << "ull:key3 \"";
-    out << src.key3;
-    out << "\":)";
+    iofguard guard(out);
+
+    out << "(:";
+    out << "key1 " << dataStruct.key1 << "ll:";
+    out << "key2 (:N " << dataStruct.key2.first << ":D " << dataStruct.key2.second << ":):";
+    out << "key3 \"" << dataStruct.key3 << "\":";
+    out << ")";
+
     return out;
 }
 
-bool compareDataStruct(const DataStruct& a, const DataStruct& b)
-{
-    if (a.key1 != b.key1)
-    {
-        return a.key1 < b.key1;
-    }
-    if (a.key2 != b.key2)
-    {
-        return a.key2 < b.key2;
-    }
-    return a.key3.length() < b.key3.length();
-}
+
 
 int main()
 {
-    std::vector<DataStruct> vec;
-    std::copy(
-        std::istream_iterator<DataStruct>(std::cin),
-        std::istream_iterator<DataStruct>(),
-        std::back_inserter(vec)
-    );
+    std::vector<DataStruct> data;
+    DataStruct temp;
 
-    std::sort(vec.begin(), vec.end(), compareDataStruct);
+    while (std::cin)
+    {
+        if (std::cin >> temp)
+        {
+            data.push_back(temp);
+        }
+        else if (std::cin.eof())
+        {
+            break;
+        }
+        else
+        {
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        }
+    }
+
+    std::sort(data.begin(), data.end(), DataStructComparator());
 
     std::copy(
-        vec.begin(),
-        vec.end(),
+        data.begin(),
+        data.end(),
         std::ostream_iterator<DataStruct>(std::cout, "\n")
     );
 
