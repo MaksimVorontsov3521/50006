@@ -340,7 +340,7 @@ int main()
         std::copy(std::istream_iterator<DataStruct>(std::cin),
                   std::istream_iterator<DataStruct>(),
                   std::back_inserter(data));
-    
+
         if (!std::cin.eof() && std::cin.fail())
         {
             std::cin.clear();
