@@ -7,8 +7,6 @@
 #include <iomanip>
 #include <utility>
 
-// IOFormat
-
 struct DelimeterIO
 {
     char exp;
@@ -16,20 +14,20 @@ struct DelimeterIO
 
 struct SllLitIO
 {
-    long long& ref;
+    long long &ref;
 };
 
 struct RatLspIO
 {
-    std::pair<long long, unsigned long long>& ref;
+    std::pair<long long, unsigned long long> &ref;
 };
 
 struct StringIO
 {
-    std::string& ref;
+    std::string &ref;
 };
 
-std::istream& operator>>(std::istream& in, DelimeterIO&& dest)
+std::istream &operator>>(std::istream &in, DelimeterIO &&dest)
 {
     std::istream::sentry sentry(in);
     if (!sentry)
@@ -47,7 +45,7 @@ std::istream& operator>>(std::istream& in, DelimeterIO&& dest)
     return in;
 }
 
-std::istream& operator>>(std::istream& in, SllLitIO&& dest)
+std::istream &operator>>(std::istream &in, SllLitIO &&dest)
 {
     std::istream::sentry sentry(in);
     if (!sentry)
@@ -75,7 +73,7 @@ std::istream& operator>>(std::istream& in, SllLitIO&& dest)
     return in;
 }
 
-std::istream& operator>>(std::istream& in, RatLspIO&& dest)
+std::istream &operator>>(std::istream &in, RatLspIO &&dest)
 {
     std::istream::sentry sentry(in);
     if (!sentry)
@@ -83,13 +81,13 @@ std::istream& operator>>(std::istream& in, RatLspIO&& dest)
         return in;
     }
 
-    in >> DelimeterIO{ '(' };
+    in >> DelimeterIO{'('};
     if (!in)
     {
         return in;
     }
 
-    in >> DelimeterIO{ ':' };
+    in >> DelimeterIO{':'};
     if (!in)
     {
         return in;
@@ -110,7 +108,7 @@ std::istream& operator>>(std::istream& in, RatLspIO&& dest)
         return in;
     }
 
-    in >> DelimeterIO{ ':' };
+    in >> DelimeterIO{':'};
     if (!in)
     {
         return in;
@@ -131,23 +129,23 @@ std::istream& operator>>(std::istream& in, RatLspIO&& dest)
         return in;
     }
 
-    in >> DelimeterIO{ ':' };
+    in >> DelimeterIO{':'};
     if (!in)
     {
         return in;
     }
 
-    in >> DelimeterIO{ ')' };
+    in >> DelimeterIO{')'};
     if (!in)
     {
         return in;
     }
 
-    dest.ref = { numer, denom };
+    dest.ref = {numer, denom};
     return in;
 }
 
-std::istream& operator>>(std::istream& in, StringIO&& dest)
+std::istream &operator>>(std::istream &in, StringIO &&dest)
 {
     std::istream::sentry sentry(in);
     if (!sentry)
@@ -155,7 +153,7 @@ std::istream& operator>>(std::istream& in, StringIO&& dest)
         return in;
     }
 
-    in >> DelimeterIO{ '"' };
+    in >> DelimeterIO{'"'};
     if (!in)
     {
         return in;
@@ -168,11 +166,10 @@ std::istream& operator>>(std::istream& in, StringIO&& dest)
 class iofguard
 {
 public:
-    iofguard(std::basic_ios<char>& s) :
-        s_(s),
-        fill_(s.fill()),
-        precision_(s.precision()),
-        fmt_(s.flags())
+    iofguard(std::basic_ios<char> &s) : s_(s),
+                                        fill_(s.fill()),
+                                        precision_(s.precision()),
+                                        fmt_(s.flags())
     {
     }
 
@@ -184,13 +181,11 @@ public:
     }
 
 private:
-    std::basic_ios<char>& s_;
+    std::basic_ios<char> &s_;
     char fill_;
     std::streamsize precision_;
     std::basic_ios<char>::fmtflags fmt_;
 };
-
-// DataStruct
 
 struct DataStruct
 {
@@ -201,7 +196,7 @@ struct DataStruct
 
 struct DataStructComparator
 {
-    bool operator()(const DataStruct& left, const DataStruct& right) const
+    bool operator()(const DataStruct &left, const DataStruct &right) const
     {
         if (left.key1 != right.key1)
         {
@@ -225,7 +220,7 @@ struct DataStructComparator
     }
 };
 
-std::istream& operator>>(std::istream& in, DataStruct& dataStruct)
+std::istream &operator>>(std::istream &in, DataStruct &dataStruct)
 {
     std::istream::sentry sentry(in);
     if (!sentry)
@@ -238,7 +233,7 @@ std::istream& operator>>(std::istream& in, DataStruct& dataStruct)
     bool hasKey2 = false;
     bool hasKey3 = false;
 
-    in >> DelimeterIO{ '(' };
+    in >> DelimeterIO{'('};
     if (!in)
     {
         return in;
@@ -246,7 +241,7 @@ std::istream& operator>>(std::istream& in, DataStruct& dataStruct)
 
     while (!(hasKey1 && hasKey2 && hasKey3))
     {
-        in >> DelimeterIO{ ':' };
+        in >> DelimeterIO{':'};
         if (!in)
         {
             break;
@@ -261,7 +256,7 @@ std::istream& operator>>(std::istream& in, DataStruct& dataStruct)
 
         if (label == "key1" && !hasKey1)
         {
-            in >> SllLitIO{ temp.key1 };
+            in >> SllLitIO{temp.key1};
             if (!in)
             {
                 break;
@@ -270,7 +265,7 @@ std::istream& operator>>(std::istream& in, DataStruct& dataStruct)
         }
         else if (label == "key2" && !hasKey2)
         {
-            in >> RatLspIO{ temp.key2 };
+            in >> RatLspIO{temp.key2};
             if (!in)
             {
                 break;
@@ -279,7 +274,7 @@ std::istream& operator>>(std::istream& in, DataStruct& dataStruct)
         }
         else if (label == "key3" && !hasKey3)
         {
-            in >> StringIO{ temp.key3 };
+            in >> StringIO{temp.key3};
             if (!in)
             {
                 break;
@@ -293,13 +288,13 @@ std::istream& operator>>(std::istream& in, DataStruct& dataStruct)
         }
     }
 
-    in >> DelimeterIO{ ':' };
+    in >> DelimeterIO{':'};
     if (!in)
     {
         return in;
     }
 
-    in >> DelimeterIO{ ')' };
+    in >> DelimeterIO{')'};
     if (!in)
     {
         return in;
@@ -317,7 +312,7 @@ std::istream& operator>>(std::istream& in, DataStruct& dataStruct)
     return in;
 }
 
-std::ostream& operator<<(std::ostream& out, const DataStruct& dataStruct)
+std::ostream &operator<<(std::ostream &out, const DataStruct &dataStruct)
 {
     std::ostream::sentry sentry(out);
     if (!sentry)
@@ -336,28 +331,21 @@ std::ostream& operator<<(std::ostream& out, const DataStruct& dataStruct)
     return out;
 }
 
-
-
 int main()
 {
     std::vector<DataStruct> data;
     DataStruct temp;
 
-    while (std::cin)
+    while (!std::cin.eof())
     {
-        if (std::cin >> temp)
-        {
-            data.push_back(temp);
-        }
-        else if (std::cin.eof())
-        {
-            break;
-        }
-        else
-        {
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
+        std::copy(std::istream_iterator<DataStruct>(std::cin),
+                  std::istream_iterator<DataStruct>(),
+                  std::back_inserter(data));
+    };
+    if (!std::cin.eof() && std::cin.fail())
+    {
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
 
     std::sort(data.begin(), data.end(), DataStructComparator());
@@ -365,8 +353,7 @@ int main()
     std::copy(
         data.begin(),
         data.end(),
-        std::ostream_iterator<DataStruct>(std::cout, "\n")
-    );
+        std::ostream_iterator<DataStruct>(std::cout, "\n"));
 
     return 0;
 }
