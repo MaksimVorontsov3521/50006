@@ -7,19 +7,13 @@
 int main()
 {
   std::vector<DataStruct> data;
-  DataStruct temp;
 
-  while (std::cin)
+  while (!std::cin.eof())
   {
-    if (std::cin >> temp)
-    {
-      data.push_back(temp);
-    }
-    else if (std::cin.eof())
-    {
-      break;
-    }
-    else
+    std::copy(std::istream_iterator<DataStruct>(std::cin),
+              std::istream_iterator<DataStruct>(),
+              std::back_inserter(data));
+    if (!std::cin.eof() && std::cin.fail())
     {
       std::cin.clear();
       std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
