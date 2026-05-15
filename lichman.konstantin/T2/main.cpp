@@ -1,4 +1,4 @@
-#include <vector>
+﻿#include <vector>
 #include <string>
 #include <algorithm>
 #include <iterator>
@@ -104,7 +104,7 @@ std::istream& operator>>(std::istream& in, DataStruct& ds)
         std::string keyName;
         while (in && in.peek() != ' ' && in.peek() != ':')
             keyName += static_cast<char>(in.get());
-        
+
         skipSpaces(in);
 
         if (keyName == "key1") {
