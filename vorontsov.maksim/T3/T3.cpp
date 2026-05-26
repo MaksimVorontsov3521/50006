@@ -10,9 +10,7 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
-
 const size_t MIN_VERTICES = 3;
-
 class StreamGuard {
 public:
     explicit StreamGuard(std::ios& stream)
@@ -24,12 +22,10 @@ private:
     std::ios& stream_;
     std::ios::fmtflags flags_;
 };
-
 struct Point {
     int x;
     int y;
 };
-
 struct Polygon {
     std::vector<Point> points;
 };
@@ -39,14 +35,12 @@ struct EchoAccumulator {
     int count_;
     Polygon target_;
 };
-
 struct BoundingBox {
     int minX_;
     int maxX_;
     int minY_;
     int maxY_;
 };
-
 //operator
 std::istream& operator>>(std::istream& stream, Point& point) {
     std::istream::sentry sentry(stream);
@@ -55,56 +49,46 @@ std::istream& operator>>(std::istream& stream, Point& point) {
     }
     StreamGuard guard(stream);
     char ch{};
-
     if (!stream.get(ch) || ch != '(') {
         stream.setstate(std::ios::failbit);
         return stream;
     }
-
     int x{};
     stream >> x;
     if (stream.fail()) {
         return stream;
     }
-
     if (!stream.get(ch) || ch != ';') {
         stream.setstate(std::ios::failbit);
         return stream;
     }
-
     int y{};
     stream >> y;
     if (stream.fail()) {
         return stream;
     }
-
     if (!stream.get(ch) || ch != ')') {
         stream.setstate(std::ios::failbit);
         return stream;
     }
-
     point.x = x;
     point.y = y;
     return stream;
 }
-
 std::istream& operator>>(std::istream& stream, Polygon& polygon) {
     std::istream::sentry sentry(stream);
     if (!sentry) {
         return stream;
     }
     StreamGuard guard(stream);
-
     size_t n{};
     stream >> n;
     if (stream.fail() || n < MIN_VERTICES) {
         stream.setstate(std::ios::failbit);
         return stream;
     }
-
     polygon.points.clear();
     polygon.points.reserve(n);
-
     for (size_t i = 0; i < n; ++i) {
         Point point{};
         stream >> point;
@@ -113,10 +97,8 @@ std::istream& operator>>(std::istream& stream, Polygon& polygon) {
         }
         polygon.points.push_back(point);
     }
-
     return stream;
 }
-
 std::ostream& operator<<(std::ostream& stream, const Point& point) {
     std::ostream::sentry sentry(stream);
     if (!sentry) {
@@ -126,7 +108,6 @@ std::ostream& operator<<(std::ostream& stream, const Point& point) {
     stream << "(" << point.x << ";" << point.y << ")";
     return stream;
 }
-
 std::ostream& operator<<(std::ostream& stream, const Polygon& polygon) {
     std::ostream::sentry sentry(stream);
     if (!sentry) {
@@ -134,14 +115,11 @@ std::ostream& operator<<(std::ostream& stream, const Polygon& polygon) {
     }
     StreamGuard guard(stream);
     stream << polygon.points.size();
-
     for (const auto& point : polygon.points) {
         stream << " " << point;
     }
-
     return stream;
 }
-
 //Polygon
 bool operator==(const Polygon& left, const Polygon& right) {
     if (left.points.size() != right.points.size()) {
@@ -153,61 +131,47 @@ bool operator==(const Polygon& left, const Polygon& right) {
             return l.x == r.x && l.y == r.y;
         });
 }
-
 Polygon parsePolygon(const std::string& string) {
     size_t spaceCount = std::count(string.begin(), string.end(), ' ');
-
     std::istringstream iss(string);
     Polygon polygon{};
-    
     iss >> polygon;
     if (iss.fail()) {
         throw std::runtime_error("invalid format");
     }
-
     if (spaceCount != polygon.points.size()) {
         throw std::runtime_error("invalid spaces");
     }
-
     char leftover{};
     if (iss >> leftover) {
         throw std::runtime_error("extra characters");
     }
-
     return polygon;
 }
-
 //Count
 size_t getVertexCount(const Polygon& polygon) {
     return polygon.points.size();
 }
-
 bool isEvenVertexCount(const Polygon& polygon) {
     return polygon.points.size() % 2 == 0;
 }
-
 bool isOddVertexCount(const Polygon& polygon) {
     return polygon.points.size() % 2 != 0;
 }
-
 bool isVertexCount(const Polygon& polygon, size_t count) {
     return polygon.points.size() == count;
 }
-
 int countEven(const std::vector<Polygon>& polygons) {
     return std::count_if(polygons.begin(), polygons.end(), isEvenVertexCount);
 }
-
 int countOdd(const std::vector<Polygon>& polygons) {
     return std::count_if(polygons.begin(), polygons.end(), isOddVertexCount);
 }
-
 int countByVertexCount(const std::vector<Polygon>& polygons, size_t count) {
     auto pred = std::bind(std::equal_to<size_t>(),
         std::bind(getVertexCount, std::placeholders::_1), count);
     return std::count_if(polygons.begin(), polygons.end(), pred);
 }
-
 //Area
 double area(const Polygon& polygon) {
     const auto& pts = polygon.points;
@@ -231,7 +195,6 @@ double area(const Polygon& polygon) {
                   static_cast<double>(pts.back().y) * pts.front().x;
     return std::abs(sum1 - sum2 + last) / 2.0;
 }
-
 double sumAreaEven(const std::vector<Polygon>& polygons) {
     auto evenArea = std::bind(std::multiplies<double>(),
         std::bind(isEvenVertexCount, std::placeholders::_1),
@@ -240,7 +203,6 @@ double sumAreaEven(const std::vector<Polygon>& polygons) {
         std::bind(std::plus<double>(), std::placeholders::_1,
         std::bind(evenArea, std::placeholders::_2)));
 }
-
 double sumAreaOdd(const std::vector<Polygon>& polygons) {
     auto oddArea = std::bind(std::multiplies<double>(),
         std::bind(isOddVertexCount, std::placeholders::_1),
@@ -249,7 +211,6 @@ double sumAreaOdd(const std::vector<Polygon>& polygons) {
         std::bind(std::plus<double>(), std::placeholders::_1,
         std::bind(oddArea, std::placeholders::_2)));
 }
-
 double sumAreaByVertexCount(const std::vector<Polygon>& polygons, size_t count) {
     auto correctArea = std::bind(std::multiplies<double>(),
         std::bind(isVertexCount, std::placeholders::_1, count),
@@ -258,7 +219,6 @@ double sumAreaByVertexCount(const std::vector<Polygon>& polygons, size_t count) 
         std::bind(std::plus<double>(), std::placeholders::_1,
         std::bind(correctArea, std::placeholders::_2)));
 }
-
 double meanArea(const std::vector<Polygon>& polygons) {
     if (polygons.empty()) {
         throw std::runtime_error("empty");
@@ -268,7 +228,6 @@ double meanArea(const std::vector<Polygon>& polygons) {
         std::bind(area, std::placeholders::_2)));
     return total / polygons.size();
 }
-
 //Max
 double maxArea(const std::vector<Polygon>& polygons) {
     if (polygons.empty()) {
@@ -280,7 +239,6 @@ double maxArea(const std::vector<Polygon>& polygons) {
     auto it = std::max_element(polygons.begin(), polygons.end(), pred);
     return area(*it);
 }
-
 size_t maxVertexCount(const std::vector<Polygon>& polygons) {
     if (polygons.empty()) {
         throw std::runtime_error("empty");
@@ -291,7 +249,6 @@ size_t maxVertexCount(const std::vector<Polygon>& polygons) {
     auto it = std::max_element(polygons.begin(), polygons.end(), pred);
     return getVertexCount(*it);
 }
-
 //Min
 double minArea(const std::vector<Polygon>& polygons) {
     if (polygons.empty()) {
@@ -303,7 +260,6 @@ double minArea(const std::vector<Polygon>& polygons) {
     auto it = std::min_element(polygons.begin(), polygons.end(), pred);
     return area(*it);
 }
-
 size_t minVertexCount(const std::vector<Polygon>& polygons) {
     if (polygons.empty()) {
         throw std::runtime_error("empty");
@@ -314,7 +270,6 @@ size_t minVertexCount(const std::vector<Polygon>& polygons) {
     auto it = std::min_element(polygons.begin(), polygons.end(), pred);
     return getVertexCount(*it);
 }
-
 //ECHO
 EchoAccumulator echoStep(EchoAccumulator acc, const Polygon& p) {
     acc.result_->push_back(p);
@@ -324,7 +279,6 @@ EchoAccumulator echoStep(EchoAccumulator acc, const Polygon& p) {
     }
     return acc;
 }
-
 int duplicateEcho(std::vector<Polygon>& polygons, const Polygon& target) {
     std::vector<Polygon> result{};
     result.reserve(polygons.size() * 2);
@@ -334,7 +288,6 @@ int duplicateEcho(std::vector<Polygon>& polygons, const Polygon& target) {
     polygons = std::move(result);
     return finalAcc.count_;
 }
-
 //INFRAME
 BoundingBox getPolyBoundingBox(const Polygon& p) {
     auto cmpX = [](const Point& a, const Point& b) { return a.x < b.x; };
@@ -345,7 +298,6 @@ BoundingBox getPolyBoundingBox(const Polygon& p) {
     auto maxItY = std::max_element(p.points.begin(), p.points.end(), cmpY);
     return {minItX->x, maxItX->x, minItY->y, maxItY->y};
 }
-
 BoundingBox mergeBoundingBoxes(BoundingBox acc, const Polygon& p) {
     BoundingBox pbb = getPolyBoundingBox(p);
     return {
@@ -355,12 +307,10 @@ BoundingBox mergeBoundingBoxes(BoundingBox acc, const Polygon& p) {
         std::max(acc.maxY_, pbb.maxY_)
     };
 }
-
 bool isInsideBoundingBox(const Point& p, const BoundingBox& bb) {
     return p.x >= bb.minX_ && p.x <= bb.maxX_ &&
            p.y >= bb.minY_ && p.y <= bb.maxY_;
 }
-
 bool inFrame(const std::vector<Polygon>& polygons, const Polygon& target) {
     if (polygons.empty()) {
         throw std::runtime_error("empty");
@@ -377,7 +327,6 @@ bool inFrame(const std::vector<Polygon>& polygons, const Polygon& target) {
         std::placeholders::_1, std::cref(bb));
     return std::all_of(target.points.begin(), target.points.end(), checkPoint);
 }
-
 //Processing
 std::vector<std::string> parseCommand(const std::string& line) {
     std::istringstream iss(line);
@@ -388,7 +337,6 @@ std::vector<std::string> parseCommand(const std::string& line) {
     }
     return words;
 }
-
 void processCommands(std::vector<Polygon>& polygons) {
     std::string line{};
     while (std::getline(std::cin, line)) {
@@ -477,7 +425,6 @@ void processCommands(std::vector<Polygon>& polygons) {
         }
     }
 }
-
 std::vector<Polygon> readShapesFromFile(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -495,7 +442,6 @@ std::vector<Polygon> readShapesFromFile(const std::string& filename) {
     }
     return result;
 }
-
 //main
 int main(int argc, char* argv[]) {
     if (argc != 2) {
